@@ -40,10 +40,14 @@ export function RAGApp() {
   const fetchKnowledgeBases = useCallback(async () => {
     try {
       const res = await fetch("/api/knowledge-bases");
-      const data = await res.json() as KnowledgeBase[];
-      setKnowledgeBases(data);
+      const data = await res.json();
+      setKnowledgeBases(Array.isArray(data) ? data : []);
+      if (!Array.isArray(data)) {
+        console.error("知识库 API 返回异常:", data);
+      }
     } catch (err) {
       console.error(err);
+      setKnowledgeBases([]);
     } finally {
       setLoading(false);
     }
@@ -52,10 +56,11 @@ export function RAGApp() {
   const fetchDocuments = useCallback(async (kbId: string) => {
     try {
       const res = await fetch(`/api/knowledge-bases/${kbId}/documents`);
-      const data = await res.json() as Document[];
-      setDocuments(data);
+      const data = await res.json();
+      setDocuments(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
+      setDocuments([]);
     }
   }, []);
 

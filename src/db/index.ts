@@ -1,24 +1,28 @@
-import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import * as schema from "./schema";
 import path from "path";
 
 const DB_PATH = path.join(process.cwd(), "rag.db");
 
-let db: ReturnType<typeof drizzle<typeof schema>> | null = null;
+// Use a global to persist across hot-reloads in dev (Next.js HMR safe)
+const globalForDb = globalThis as unknown as {
+  __ragDb?: ReturnType<typeof drizzle<typeof schema>>;
+};
 
 function getDb() {
-  if (!db) {
+  if (!globalForDb.__ragDb) {
+    // Require at runtime to avoid issues with Turbopack native module handling
+    const Database = require("better-sqlite3") as typeof import("better-sqlite3");
     const sqlite = new Database(DB_PATH);
     sqlite.pragma("journal_mode = WAL");
     sqlite.pragma("foreign_keys = ON");
-    db = drizzle(sqlite, { schema });
     initializeDatabase(sqlite);
+    globalForDb.__ragDb = drizzle(sqlite, { schema });
   }
-  return db;
+  return globalForDb.__ragDb;
 }
 
-function initializeDatabase(sqlite: Database.Database) {
+function initializeDatabase(sqlite: import("better-sqlite3").Database) {
   sqlite.exec(`
     CREATE TABLE IF NOT EXISTS knowledge_bases (
       id TEXT PRIMARY KEY,
