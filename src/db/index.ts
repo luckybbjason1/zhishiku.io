@@ -23,11 +23,19 @@ function getDb() {
 }
 
 function initializeDatabase(sqlite: import("better-sqlite3").Database) {
+  // Run migration: add ai_type column if it doesn't exist (for existing databases)
+  try {
+    sqlite.exec(`ALTER TABLE knowledge_bases ADD COLUMN ai_type TEXT NOT NULL DEFAULT 'general'`);
+  } catch {
+    // Column already exists, ignore
+  }
+
   sqlite.exec(`
     CREATE TABLE IF NOT EXISTS knowledge_bases (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       description TEXT,
+      ai_type TEXT NOT NULL DEFAULT 'general',
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL,
       document_count INTEGER NOT NULL DEFAULT 0,

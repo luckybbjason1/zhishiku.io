@@ -2,11 +2,13 @@
 
 import { MessageSquare, FileText, Trash2, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AI_TYPE_LABELS, AI_TYPE_COLORS, type AIType } from "@/db/schema";
 
 interface KnowledgeBase {
   id: string;
   name: string;
   description: string | null;
+  aiType: string;
   documentCount: number;
   chunkCount: number;
   createdAt: Date | string | number;
@@ -19,8 +21,22 @@ interface Props {
   isSelected?: boolean;
 }
 
+const AI_TYPE_ICONS: Record<AIType, string> = {
+  chatgpt: "🤖",
+  claude: "🧡",
+  gemini: "💎",
+  llama: "🦙",
+  qwen: "☁️",
+  deepseek: "🔬",
+  general: "📚",
+};
+
 export function KnowledgeBaseCard({ kb, onSelect, onDelete, isSelected }: Props) {
   const createdAt = new Date(kb.createdAt);
+  const aiType = (kb.aiType ?? "general") as AIType;
+  const colorClass = AI_TYPE_COLORS[aiType] ?? AI_TYPE_COLORS.general;
+  const label = AI_TYPE_LABELS[aiType] ?? "通用";
+  const icon = AI_TYPE_ICONS[aiType] ?? "📚";
 
   return (
     <div
@@ -39,8 +55,17 @@ export function KnowledgeBaseCard({ kb, onSelect, onDelete, isSelected }: Props)
             </div>
             <h3 className="font-medium text-neutral-100 truncate">{kb.name}</h3>
           </div>
+          {/* AI type badge */}
+          <div className="mt-1.5 ml-10">
+            <span
+              className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-medium ${colorClass}`}
+            >
+              <span>{icon}</span>
+              {label}
+            </span>
+          </div>
           {kb.description && (
-            <p className="mt-1.5 ml-10 text-xs text-neutral-500 line-clamp-2">
+            <p className="mt-1 ml-10 text-xs text-neutral-500 line-clamp-2">
               {kb.description}
             </p>
           )}

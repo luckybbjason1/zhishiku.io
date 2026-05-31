@@ -1,9 +1,42 @@
 import { sqliteTable, text, integer, real, blob } from "drizzle-orm/sqlite-core";
 
+export const AI_TYPES = [
+  "chatgpt",
+  "claude",
+  "gemini",
+  "llama",
+  "qwen",
+  "deepseek",
+  "general",
+] as const;
+
+export type AIType = (typeof AI_TYPES)[number];
+
+export const AI_TYPE_LABELS: Record<AIType, string> = {
+  chatgpt: "ChatGPT",
+  claude: "Claude",
+  gemini: "Gemini",
+  llama: "Llama",
+  qwen: "通义千问",
+  deepseek: "DeepSeek",
+  general: "通用",
+};
+
+export const AI_TYPE_COLORS: Record<AIType, string> = {
+  chatgpt: "bg-green-900/40 text-green-400 border-green-800",
+  claude: "bg-orange-900/40 text-orange-400 border-orange-800",
+  gemini: "bg-blue-900/40 text-blue-400 border-blue-800",
+  llama: "bg-purple-900/40 text-purple-400 border-purple-800",
+  qwen: "bg-sky-900/40 text-sky-400 border-sky-800",
+  deepseek: "bg-cyan-900/40 text-cyan-400 border-cyan-800",
+  general: "bg-neutral-800/60 text-neutral-400 border-neutral-700",
+};
+
 export const knowledgeBases = sqliteTable("knowledge_bases", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
+  aiType: text("ai_type").notNull().default("general"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
   documentCount: integer("document_count").notNull().default(0),

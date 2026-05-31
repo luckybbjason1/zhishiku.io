@@ -3,15 +3,27 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AI_TYPES, AI_TYPE_LABELS, AI_TYPE_COLORS, type AIType } from "@/db/schema";
 
 interface Props {
   onClose: () => void;
   onCreated: (kb: unknown) => void;
 }
 
+const AI_TYPE_ICONS: Record<AIType, string> = {
+  chatgpt: "🤖",
+  claude: "🧡",
+  gemini: "💎",
+  llama: "🦙",
+  qwen: "☁️",
+  deepseek: "🔬",
+  general: "📚",
+};
+
 export function CreateKnowledgeBaseModal({ onClose, onCreated }: Props) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [aiType, setAiType] = useState<AIType>("general");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -24,7 +36,7 @@ export function CreateKnowledgeBaseModal({ onClose, onCreated }: Props) {
       const res = await fetch("/api/knowledge-bases", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, description }),
+        body: JSON.stringify({ name, description, aiType }),
       });
       if (!res.ok) {
         const data = await res.json() as { error: string };
@@ -63,6 +75,30 @@ export function CreateKnowledgeBaseModal({ onClose, onCreated }: Props) {
               autoFocus
             />
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-2">
+              AI 分类 <span className="text-red-500">*</span>
+            </label>
+            <div className="grid grid-cols-4 gap-2">
+              {AI_TYPES.map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setAiType(type)}
+                  className={`flex flex-col items-center gap-1 rounded-lg border px-2 py-2.5 text-xs font-medium transition-all ${
+                    aiType === type
+                      ? `${AI_TYPE_COLORS[type]} ring-1 ring-inset ring-current`
+                      : "border-neutral-700 bg-neutral-900 text-neutral-400 hover:border-neutral-600 hover:text-neutral-300"
+                  }`}
+                >
+                  <span className="text-base">{AI_TYPE_ICONS[type]}</span>
+                  <span>{AI_TYPE_LABELS[type]}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-neutral-300 mb-1.5">
               描述（可选）

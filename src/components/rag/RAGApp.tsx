@@ -1,17 +1,19 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Plus, Database, ChevronLeft, Upload as UploadIcon, MessageSquare } from "lucide-react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { Plus, Database, ChevronLeft, Upload as UploadIcon, MessageSquare, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { KnowledgeBaseCard } from "./KnowledgeBaseCard";
 import { CreateKnowledgeBaseModal } from "./CreateKnowledgeBaseModal";
 import { DocumentUpload } from "./DocumentUpload";
 import { ChatInterface } from "./ChatInterface";
+import { AI_TYPES, AI_TYPE_LABELS, AI_TYPE_COLORS, type AIType } from "@/db/schema";
 
 interface KnowledgeBase {
   id: string;
   name: string;
   description: string | null;
+  aiType: string;
   documentCount: number;
   chunkCount: number;
   createdAt: Date | string | number;
@@ -29,6 +31,16 @@ interface Document {
 
 type ActiveView = "documents" | "chat";
 
+const AI_TYPE_ICONS: Record<AIType, string> = {
+  chatgpt: "🤖",
+  claude: "🧡",
+  gemini: "💎",
+  llama: "🦙",
+  qwen: "☁️",
+  deepseek: "🔬",
+  general: "📚",
+};
+
 export function RAGApp() {
   const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeBase[]>([]);
   const [selectedKb, setSelectedKb] = useState<KnowledgeBase | null>(null);
@@ -36,6 +48,7 @@ export function RAGApp() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [activeView, setActiveView] = useState<ActiveView>("documents");
   const [loading, setLoading] = useState(true);
+  const [filterAiType, setFilterAiType] = useState<AIType | "all">("all");
 
   const fetchKnowledgeBases = useCallback(async () => {
     try {
@@ -86,6 +99,10 @@ export function RAGApp() {
     fetchKnowledgeBases();
     setSelectedKb(kb);
     setActiveView("documents");
+    // Auto-select the AI category filter to match the created KB
+    if (kb.aiType) {
+      setFilterAiType(kb.aiType as AIType);
+    }
   }
 
   function handleDocumentsChange() {
@@ -102,6 +119,17 @@ export function RAGApp() {
       });
     }
   }
+
+  // Compute which AI types are present in the knowledge bases
+  const presentAiTypes = useMemo(() => {
+    const types = new Set(knowledgeBases.map((kb) => kb.aiType as AIType));
+    return AI_TYPES.filter((t) => types.has(t));
+  }, [knowledgeBases]);
+
+  const filteredKbs = useMemo(() => {
+    if (filterAiType === "all") return knowledgeBases;
+    return knowledgeBases.filter((kb) => kb.aiType === filterAiType);
+  }, [knowledgeBases, filterAiType]);
 
   return (
     <div className="flex h-screen bg-neutral-950 text-neutral-100 overflow-hidden">
@@ -135,20 +163,74 @@ export function RAGApp() {
           </Button>
         </div>
 
+        {/* AI Category filter tabs */}
+        {!loading && knowledgeBases.length > 0 && (
+          <div className="px-4 pb-3">
+            <div className="flex items-center gap-1 mb-2">
+              <Filter className="h-3 w-3 text-neutral-500" />
+              <span className="text-xs text-neutral-500">按 AI 分类筛选</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                onClick={() => setFilterAiType("all")}
+                className={`rounded-md border px-2 py-1 text-xs font-medium transition-all ${
+                  filterAiType === "all"
+                    ? "border-indigo-500 bg-indigo-950/60 text-indigo-300"
+                    : "border-neutral-700 bg-neutral-900 text-neutral-400 hover:border-neutral-600 hover:text-neutral-300"
+                }`}
+              >
+                全部 ({knowledgeBases.length})
+              </button>
+              {presentAiTypes.map((type) => {
+                const count = knowledgeBases.filter((kb) => kb.aiType === type).length;
+                return (
+                  <button
+                    key={type}
+                    onClick={() => setFilterAiType(type)}
+                    className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition-all ${
+                      filterAiType === type
+                        ? `${AI_TYPE_COLORS[type]} ring-1 ring-inset ring-current`
+                        : "border-neutral-700 bg-neutral-900 text-neutral-400 hover:border-neutral-600 hover:text-neutral-300"
+                    }`}
+                  >
+                    <span>{AI_TYPE_ICONS[type]}</span>
+                    {AI_TYPE_LABELS[type]}
+                    <span className="opacity-60">({count})</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Knowledge base list */}
         <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2">
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
             </div>
-          ) : knowledgeBases.length === 0 ? (
+          ) : filteredKbs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Database className="h-10 w-10 text-neutral-700 mb-3" />
-              <p className="text-sm text-neutral-500">还没有知识库</p>
-              <p className="text-xs text-neutral-600 mt-1">点击上方按钮新建</p>
+              {knowledgeBases.length === 0 ? (
+                <>
+                  <p className="text-sm text-neutral-500">还没有知识库</p>
+                  <p className="text-xs text-neutral-600 mt-1">点击上方按钮新建</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-neutral-500">该分类下暂无知识库</p>
+                  <button
+                    className="text-xs text-indigo-400 mt-1 hover:text-indigo-300"
+                    onClick={() => setFilterAiType("all")}
+                  >
+                    查看全部
+                  </button>
+                </>
+              )}
             </div>
           ) : (
-            knowledgeBases.map((kb) => (
+            filteredKbs.map((kb) => (
               <KnowledgeBaseCard
                 key={kb.id}
                 kb={kb}
@@ -166,7 +248,9 @@ export function RAGApp() {
         {/* Footer */}
         <div className="px-4 py-3 border-t border-neutral-800">
           <p className="text-xs text-neutral-600 text-center">
-            {knowledgeBases.length} 个知识库 · RAG 系统
+            {filteredKbs.length === knowledgeBases.length
+              ? `${knowledgeBases.length} 个知识库 · RAG 系统`
+              : `显示 ${filteredKbs.length} / ${knowledgeBases.length} 个知识库`}
           </p>
         </div>
       </div>
@@ -187,7 +271,19 @@ export function RAGApp() {
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <div>
-                  <h2 className="text-sm font-semibold text-neutral-100">{selectedKb.name}</h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-sm font-semibold text-neutral-100">{selectedKb.name}</h2>
+                    {selectedKb.aiType && (
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-medium ${
+                          AI_TYPE_COLORS[selectedKb.aiType as AIType] ?? AI_TYPE_COLORS.general
+                        }`}
+                      >
+                        <span>{AI_TYPE_ICONS[selectedKb.aiType as AIType] ?? "📚"}</span>
+                        {AI_TYPE_LABELS[selectedKb.aiType as AIType] ?? "通用"}
+                      </span>
+                    )}
+                  </div>
                   {selectedKb.description && (
                     <p className="text-xs text-neutral-500">{selectedKb.description}</p>
                   )}
@@ -259,9 +355,21 @@ export function RAGApp() {
               <h2 className="text-2xl font-bold text-neutral-100 mb-3">
                 RAG 知识库系统
               </h2>
-              <p className="text-neutral-500 leading-relaxed mb-8">
+              <p className="text-neutral-500 leading-relaxed mb-6">
                 上传您的文档（PDF、TXT、Markdown），系统将自动分割文本、生成向量索引，然后您可以通过自然语言提问，AI 将基于您的知识库内容给出精准回答。
               </p>
+              {/* AI category showcase */}
+              <div className="grid grid-cols-4 gap-2 mb-6">
+                {AI_TYPES.map((type) => (
+                  <div
+                    key={type}
+                    className={`rounded-xl border px-2 py-2.5 flex flex-col items-center gap-1 ${AI_TYPE_COLORS[type]}`}
+                  >
+                    <span className="text-lg">{AI_TYPE_ICONS[type]}</span>
+                    <span className="text-xs font-medium">{AI_TYPE_LABELS[type]}</span>
+                  </div>
+                ))}
+              </div>
               <div className="grid grid-cols-3 gap-4 mb-8">
                 {[
                   { icon: "📄", title: "上传文档", desc: "PDF / TXT / MD" },
