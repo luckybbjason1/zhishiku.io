@@ -14,6 +14,7 @@
 - [x] ESLint configuration
 - [x] Memory bank documentation
 - [x] Recipe system for common features
+- [x] **AI 分类系统**（按 ChatGPT/Claude/Gemini/Llama/Qwen/DeepSeek/通用分类知识库，侧边栏筛选+彩色 badge）
 - [x] **RAG 知识库系统完整实现**
   - SQLite 数据库 (better-sqlite3 + Drizzle ORM)
   - 文档上传 API (PDF/TXT/MD 支持)
@@ -64,7 +65,17 @@
 
 ## Current Focus
 
-系统已完整实现。无需 API Key 即可使用（回退到哈希向量检索+原始片段展示）。
+系统已完整实现，并支持按 AI 分类管理知识库。无需 API Key 即可使用（回退到哈希向量检索+原始片段展示）。
+
+### AI 分类系统
+
+- **分类列表**: ChatGPT、Claude、Gemini、Llama、通义千问（Qwen）、DeepSeek、通用
+- **schema.ts** 导出 `AI_TYPES`、`AI_TYPE_LABELS`、`AI_TYPE_COLORS` 常量
+- **数据库迁移**: `db/index.ts` 中自动为现有数据库添加 `ai_type` 列（ALTER TABLE 回退）
+- **新建弹窗**: 网格形式选择 AI 分类（含图标+颜色）
+- **侧边栏筛选**: 按 AI 类型筛选知识库列表，仅显示已有数据的分类
+- **卡片 Badge**: 每张卡片显示彩色 AI 分类标签
+- **顶栏 Badge**: 选中知识库后，顶栏显示对应 AI 分类标签
 
 ## Session History
 
@@ -72,3 +83,4 @@
 |------|---------|
 | Initial | Template created with base setup |
 | 2026-05-31 | 完整 RAG 知识库系统实现 |
+| 2026-05-31 | 添加 AI 分类系统（知识库按 AI 类型分类管理） |
